@@ -86,17 +86,19 @@ app.get('/api/catalogs/:id/total', (req, res) =>
     .then((response) => res.send(response))
 )
 
-app.get('/api/result/:catalogId', async (req, res) => 
+app.get('/api/result/:catalogId', (req, res) => 
     ya.download.link(API_TOKEN, `${classificationPath}${req.params.catalogId}.json`)
         .then(({ href }) => axios.get(href))
         .then(({data}) => res.send(data))   
 );
 
-app.get('/photos/:catalogId/:photoId', async (req, res) =>  {
+app.get('/photos/:catalogId/:photoId', (req, res) => 
     ya.download.link(API_TOKEN, `${catalogPath}${req.params.catalogId}/${req.params.photoId}`)
         .then(({ href }) => axios.get(href, { responseType: 'arraybuffer' }))
-        .then(({data}) => res.write(data))
-    }   
+        .then(({data}) => {
+            res.write(data);
+            res.end();
+        })
 );
 
 app.listen(port, () => console.log(`Example app listening at http://localhost:${port}`))
