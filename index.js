@@ -1,9 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const API_TOKEN = process.env.API_TOKEN;
+const axios = require('axios');
+const { request } = require('https')
 const ya = require('ya-disk');
 const { parse } = require('url');
-const { request } = require('https')
 const app = express();
 const port = 3000;
 
@@ -62,20 +63,21 @@ app.post('/api/catalogs/:catalogId', ({body, params}, res) => {
     res.sendStatus(200);
 })
 
-app.get('/api/catalogs/:id/photos', (req, res) => 
-    ya.meta.get(API_TOKEN, `${catalogPath}${req.params.id}`, {
-        fields: '_embedded.items.name,_embedded.items.media_type,_embedded.items.file',
+app.get('/api/catalogs/:catalogId/photos', (req, res) => 
+    ya.meta.get(API_TOKEN, `${catalogPath}${req.params.catalogId}`, {
+        fields: '_embedded.items.name,_embedded.items.media_type',
         limit: req.query.limit,
         offset: req.query.offset,
     })
-    .then(({_embedded }) => _embedded.items.reduce((result, {media_type, name, file}) => {
+    .then(({_embedded }) => _embedded.items.reduce((result, {media_type, name}) => {
             if (media_type === 'image') {
-                result.push({name, file});
+                result.push(name);
             }
             return result;
         }, []))
     .then((items) => res.send(items))
 )
+
 app.get('/api/catalogs/:id/total', (req, res) => 
     ya.meta.get(API_TOKEN, `${catalogPath}${req.params.id}`, {
         fields: '_embedded.total'
@@ -84,8 +86,17 @@ app.get('/api/catalogs/:id/total', (req, res) =>
     .then((response) => res.send(response))
 )
 
-app.get('/api/result/:catalogId', async (req, output) => 
-    ya.download.link(API_TOKEN, `${classificationPath}${req.params.catalogId}.json`).then(({ href }) => output.redirect(href))   
+app.get('/api/result/:catalogId', async (req, res) => 
+    ya.download.link(API_TOKEN, `${classificationPath}${req.params.catalogId}.json`)
+        .then(({ href }) => axios.get(href))
+        .then(({data}) => res.send(data))   
+);
+
+app.get('/photos/:catalogId/:photoId', async (req, res) =>  {
+    ya.download.link(API_TOKEN, `${catalogPath}${req.params.catalogId}/${req.params.photoId}`)
+        .then(({ href }) => axios.get(href, { responseType: 'arraybuffer' }))
+        .then(({data}) => res.write(data))
+    }   
 );
 
 app.listen(port, () => console.log(`Example app listening at http://localhost:${port}`))

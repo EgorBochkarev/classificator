@@ -68,9 +68,9 @@
           fetch(`/api/catalogs/${catalog}/photos?offset=${page * LIMIT}&limit=${LIMIT}`)
               .then((response) => response.json())
               .then((items) => 
-                  items.forEach(({name, file}, id) => {
+                  items.forEach((name, id) => {
                     result[name] = false;
-                    main.appendChild(createImage(catalog, name, file));
+                    main.appendChild(createImage(catalog, name));
                   })
               )
         }
@@ -105,9 +105,9 @@
             return el;
         }
 
-        function createImage(catalog, name, path){
+        function createImage(catalog, name){
             const el = document.createElement('img');
-            el.setAttribute('src', path)
+            el.setAttribute('src', `/photos/${catalog}/${name}`)
             el.setAttribute('class', 'image')
             el.setAttribute('id', name)
             el.setAttribute('onerror', 'imgError(this);')
