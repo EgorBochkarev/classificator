@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <title>Classificator</title>
+    <meta charset="utf-8">
+    <meta name="keywords" content="HTML, CSS">
+    <meta name="description" content="Example of java script free web site">
+    <meta name="viewport" content="width=device-width">
+    <style>
+      .image {
+        margin: 5px;
+        border: 2px white solid;
+      }
+      .selected {
+        border: 2px green solid;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <select id="select">
+      <option value=""></option>
+    </select>
+    <form onsubmit="return importResult(event)">
+      <input id="input"></input>
+      <button>Import</button>
+    </form>
+    <div id="main">
+    </div>
+    <div>
+      <button id="more" hidden onclick="clickMore();">More</button>
+    </div>
+    <button id="save">Save</button>
+    <script>
+        let result = {};
+        const select = document.getElementById('select');
+        const main = document.getElementById('main');
+        const save = document.getElementById('save');
+        const input = document.getElementById('input');
+        const more = document.getElementById('more');
+
+        const choosedCatalog = new URLSearchParams(window.location.search).get('catalog');
+        const LIMIT = 100;
+        let TOTAL = 0;
+        let current_page = 0;
+
+        save.addEventListener("click", () => fetch(`/api/catalogs/${select.value}`, {
+          method: 'POST',
+          body: JSON.stringify(result),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }));
+
+        select.addEventListener("change", showCatalog);
+
+        function showCatalog(){
+            main.innerHTML = '';
+            result = {};
+            if (select.value) {
+              history.pushState({}, select.value, `?catalog=${select.value}`)
+              showPart(select.value, 0)
+              loadTotal(select.value)
+            }
+        }
+
+        function showPart(catalog, page) {
+          fetch(`/api/catalogs/${catalog}/photos?offset=${page * LIMIT}&limit=${LIMIT}`)
+              .then((response) => response.json())
+              .then((items) => 
+                  items.forEach(({name, file}, id) => {
+                    result[name] = false;
+                    main.appendChild(createImage(catalog, name, file));
+                  })
+              )
+        }
+        function clickMore() {
+          if (select.value) {
+            showPart(select.value, ++current_page);
+            if (TOTAL < current_page * LIMIT) {
+              more.hidden = true
+            }
+          }
+        }
+        function loadTotal(catalog) {
+          fetch(`/api/catalogs/${select.value}/total`)
+              .then((response) => response.json())
+              .then(({total}) => {
+                  TOTAL = total;
+                  if (total > LIMIT) {
+                    more.hidden = false
+                  }
+                }
+              )
+        }
+
+        function createOption(name){
+            const el = document.createElement('option');
+            el.setAttribute('value', name)
+            if (name === choosedCatalog) {
+              el.setAttribute('selected', true)
+            }
+            el.se
+            el.innerHTML = name;
+            return el;
+        }
+
+        function createImage(catalog, name, path){
+            const el = document.createElement('img');
+            el.setAttribute('src', path)
+            el.setAttribute('class', 'image')
+            el.setAttribute('id', name)
+            el.setAttribute('onerror', 'imgError(this);')
+            el.addEventListener('click', () => {
+              result[name] = !result[name];
+              if (result[name]) {
+                el.classList.add('selected');
+              } else {
+                el.classList.remove('selected');
+              }
+            })
+            return el;
+        }
+
+        function imgError(image) {
+          image.onerror = null;
+          setTimeout(function (){
+              image.src += '&' + +new Date;
+          }, 1000);
+        }
+
+        function importResult(e){
+            e.preventDefault();
+            fetch(`/api/result/${input.value}`)
+              .then((response) => response.json())
+              .then(
+                (newResult) => {
+                  Object.keys(newResult).forEach((key) => {
+                    result[key] = newResult[key];
+                    const img = document.getElementById(key);
+                    if (result[key]) {
+                      img.classList.add('selected');
+                    } else {
+                      img.classList.remove('selected');
+                    }
+                  })
+                }
+              );
+            return false;
+        }
+
+        fetch('/api/catalogs')
+          .then((response) => response.json())
+          .then((data) => data.forEach((catalogName) => {
+            select.appendChild(createOption(catalogName))
+            showCatalog()
+          }));
+    </script>
+  </body>
+</html>
