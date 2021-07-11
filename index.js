@@ -45,12 +45,12 @@ app.post('/api/catalogs/:catalogId', ({body, params}, res) => {
     createIfNotExist(classificationPath).then(() =>
         ya.upload.link(API_TOKEN, `${classificationPath}${params.catalogId}.json`, true)
     ).then(({ href, method }) => {
-        const data = new TextEncoder().encode(JSON.stringify(body))
         const uploadStream = request({ ...parse(href), method });
         uploadStream.write(data)
-        uploadStream.end()
+        uploadStream.end(JSON.stringify(body))
         return createIfNotExist(`${classificationPath}${params.catalogId}`, true)
     })
+    .then(() => res.sendStatus(200))
     .then(() => 
         Object.keys(body).reduce((promise, key) => {
             const classDir =  `${classificationPath}${params.catalogId}/${String(body[key])}`;
@@ -59,8 +59,6 @@ app.post('/api/catalogs/:catalogId', ({body, params}, res) => {
                 .then(() => ya.resources.copy(API_TOKEN, `${catalogPath}${params.catalogId}/${key}`, `${classDir}/${key}`, true))
         }, Promise.resolve())
     )
-        
-    res.sendStatus(200);
 })
 
 app.get('/api/catalogs/:catalogId/photos', (req, res) => 
