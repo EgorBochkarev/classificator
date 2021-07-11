@@ -46,8 +46,8 @@ app.post('/api/catalogs/:catalogId', ({body, params}, res) => {
         ya.upload.link(API_TOKEN, `${classificationPath}${params.catalogId}.json`, true)
     ).then(({ href, method }) => {
         const uploadStream = request({ ...parse(href), method });
-        uploadStream.write(data)
-        uploadStream.end(JSON.stringify(body))
+        uploadStream.write(JSON.stringify(body))
+        uploadStream.end()
         return createIfNotExist(`${classificationPath}${params.catalogId}`, true)
     })
     .then(() => res.sendStatus(200))
